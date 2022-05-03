@@ -1,4 +1,4 @@
-//Sagiv Antebi
+//Sagiv Antebi 318159282
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,18 +44,22 @@ int main(int argc, const char *argv[]) {
         perror("read failed");
         exit(-1);
     }
-    printf("%s\n",firstPathBuffer);
     char firstPathBufferNoSpaces[SIZE + 1];
-    removeSpacesAndNewLines(firstPathBuffer);
-    printf("%s\n",firstPathBuffer);
     //reading the second path content
     sBuffer= read(sptr,secondPathBuffer,SIZE);
     if (sBuffer < 0){
         perror("read failed");
         exit(-1);
     }
+    if (strcmp(firstPathBuffer,secondPathBuffer) == 0){
+        return 1;
+    }
+
+    removeSpacesAndNewLines(firstPathBuffer);
+    printf("%s\n",firstPathBuffer);
     removeSpacesAndNewLines(secondPathBuffer);
     printf("\n%s\n\n",secondPathBuffer);
+
 
 
 
@@ -79,7 +83,7 @@ void removeSpacesAndNewLines(char buffer[151]) {
         strcat(returnBuffer,token2);
         token2 = strtok(NULL,ENTER);
     }
-    strcpy(buffer,newBufferNoSpace);
+    strcpy(buffer,returnBuffer);
 }
 
 
