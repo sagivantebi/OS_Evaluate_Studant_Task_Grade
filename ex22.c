@@ -118,7 +118,7 @@ int main(int argc, const char *argv[]) {
                         }
                             //The child
                         else if (childID == 0) {
-                            char *arg2[SIZE] = {"./b.out","<","5 5",">","outputB.txt"};
+                            char *arg2[SIZE] = {"./b.out","<",pathInput,">","outputB.txt"};
                             if (execvp(arg2[0], arg2) == -1) {
                                 perror("exec failed");
                                 exit(-1);
