@@ -12,25 +12,25 @@
 #define SIZE 150
 #define SPACE " "
 #define ENTER "\n"
-#define LOWER_A "a"
-#define LOWER_Z "z"
+#define LOWER_A 97
+#define LOWER_Z 123
 
 int checkIfLettersEqual(char a, char b);
 
-void removeSpacesAndNewLines(char buffer[SIZE + 1]);
+void removeSpacesAndNewLines(char buffer[SIZE]);
 
-void makeAllUpperCase(char buffer[SIZE + 1]);
+void makeAllUpperCase(char buffer[SIZE]);
 
-void setStringToCompare(char buffer[SIZE + 1]);
+void setStringToCompare(char buffer[SIZE]);
 
 void clearString(char buffer[SIZE]);
 
 int main(int argc, const char *argv[]) {
     int numToReturn = 2;
-    char firstPathBuffer[SIZE + 1], secondPathBuffer[SIZE + 1];
+    char firstPathBuffer[SIZE], secondPathBuffer[SIZE];
     int fBuffer, sBuffer;
     if (argc != 3) {
-        printf("Not enough Arguments");
+        printf("Not enough Arguments\n");
         exit(1);
     }
     if (strcmp(argv[1], argv[2]) == 0) {
@@ -259,19 +259,19 @@ int main(int argc, const char *argv[]) {
 }
 
 
-void makeAllUpperCase(char buffer[SIZE + 1]) {
+void makeAllUpperCase(char buffer[SIZE]) {
     int i;
     for (i = 0; i < strlen(buffer); ++i) {
-        if (buffer[i] >= 97 && buffer[i] <= 123) {
+        if (buffer[i] >= LOWER_A && buffer[i] <= LOWER_Z) {
             buffer[i] -= 32;
         }
     }
 }
 
-void removeSpacesAndNewLines(char buffer[SIZE + 1]) {
+void removeSpacesAndNewLines(char buffer[SIZE]) {
     printf("the given buffer : %s \t ",buffer);
-    char newBufferNoSpace[SIZE + 1];
-    char returnBuffer[SIZE + 1];
+    char newBufferNoSpace[SIZE];
+    char returnBuffer[SIZE];
     clearString(newBufferNoSpace);
     clearString(returnBuffer);
     char *token = strtok(buffer, SPACE);
@@ -289,7 +289,7 @@ void removeSpacesAndNewLines(char buffer[SIZE + 1]) {
 }
 
 
-void setStringToCompare(char buffer[SIZE + 1]) {
+void setStringToCompare(char buffer[SIZE]) {
     removeSpacesAndNewLines(buffer);
     makeAllUpperCase(buffer);
 }
