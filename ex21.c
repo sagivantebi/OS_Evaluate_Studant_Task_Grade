@@ -12,25 +12,23 @@
 #define SIZE 150
 #define SPACE " "
 #define ENTER "\n"
-#define LOWER_A "a"
-#define LOWER_Z "z"
+#define LOWER_A 97
+#define LOWER_Z 123
 
-int checkIfLettersEqual(char a, char b);
 
-void removeSpacesAndNewLines(char buffer[SIZE + 1]);
+void removeSpacesAndNewLines(char buffer[SIZE]);
 
-void makeAllUpperCase(char buffer[SIZE + 1]);
+void makeAllUpperCase(char buffer[SIZE]);
 
-void setStringToCompare(char buffer[SIZE + 1]);
+void setStringToCompare(char buffer[SIZE]);
 
 void clearString(char buffer[SIZE]);
 
 int main(int argc, const char *argv[]) {
-    int numToReturn = 2;
-    char firstPathBuffer[SIZE + 1], secondPathBuffer[SIZE + 1];
+    char firstPathBuffer[SIZE], secondPathBuffer[SIZE];
     int fBuffer, sBuffer;
     if (argc != 3) {
-        printf("Not enough Arguments");
+        printf("Not enough Arguments\n");
         exit(1);
     }
     if (strcmp(argv[1], argv[2]) == 0) {
@@ -61,18 +59,21 @@ int main(int argc, const char *argv[]) {
     //Check if the text is short then do only those text
     if (sBuffer < SIZE && fBuffer < SIZE) {
         if (strcmp(firstPathBuffer, secondPathBuffer) == 0) {
+            close(fptr);
+            close(sptr);
             return 1;
         }
         setStringToCompare(firstPathBuffer);
         setStringToCompare(secondPathBuffer);
-        printf("the string is: %s , and his lengt is: %d\n", firstPathBuffer, strlen(firstPathBuffer));
-        printf("the string is: %s , and his lengt is: %d\n", secondPathBuffer, strlen(secondPathBuffer));
         if (strcmp(firstPathBuffer, secondPathBuffer) == 0) {
+            close(fptr);
+            close(sptr);
             return 3;
         }
+        close(fptr);
+        close(sptr);
         return 2;
     }
-    printf("1\n");
     int s, f;
     //check if the strings are equal
     int identicalBool = 1;
@@ -93,19 +94,14 @@ int main(int argc, const char *argv[]) {
                 sLength = strlen(secondPathBuffer);
             }
             identicalBool = 0;
-            printf("fLength f = %d | sLength s =  %d\n",fLength,sLength);
             while (s != sLength && f != fLength) {
-                printf("index f = %d | index s =  %d\t",f,s);
-                printf("%c compare to %c\t",firstPathBuffer[f],secondPathBuffer[s]);
                 if (firstPathBuffer[f] == secondPathBuffer[s]) {
-                    printf("%c compare to %c\n",firstPathBuffer[f],secondPathBuffer[s]);
                     f++;
                     s++;
                     continue;
                 }
                 close(fptr);
                 close(sptr);
-                printf("2\n");
                 return 2;
             }
 
@@ -119,7 +115,6 @@ int main(int argc, const char *argv[]) {
                 exit(-1);
             }
             f = 0;
-            printf("\n\n\n\t\tthe firstPathBuffer after read %s\n",firstPathBuffer);
         }
         if (s == sLength) {
             //reading the second path content
@@ -132,16 +127,13 @@ int main(int argc, const char *argv[]) {
             s = 0;
         }
     }
-    printf("1\n");
     //fBuffer or sBuffer are smaller than SIZE
     //checks if they are identical
     if (identicalBool && (strcmp(firstPathBuffer, secondPathBuffer) == 0) && (f == 0) && (s == 0)) {
         close(fptr);
         close(sptr);
-        printf("not here\n");
         return 1;
     } else if (fBuffer == 0 && sBuffer == 0 && identicalBool == 0) {
-        printf("dont think here either\n");
         close(fptr);
         close(sptr);
         return 3;
@@ -169,31 +161,21 @@ int main(int argc, const char *argv[]) {
         close(sptr);
         return 3;
     } else if (fBuffer < SIZE) {
-        printf("fyy the sBuffer is %d\n",sBuffer);
-        printf("fBuffer < SIZE\n");
         if (f == 0) {
             setStringToCompare(firstPathBuffer);
             fLength = strlen(firstPathBuffer) ;
-            printf("the firstPathBuffer is now %s\n",firstPathBuffer);
         }
         while (sBuffer != 0) {
             if (s == 0) {
-                printf("it shrink it\n");
                 setStringToCompare(secondPathBuffer);
                 sLength = strlen(secondPathBuffer);
-                printf("the string is now %s\n",secondPathBuffer);
             }
-            printf("fLength f = %d | sLength s =  %d\n",fLength,sLength);
             while (s != sLength && f != fLength) {
-                printf("index f = %d | index s =  %d\t",f,s);
-                printf("%c compare to %c\t",firstPathBuffer[f],secondPathBuffer[s]);
                 if (firstPathBuffer[f] == secondPathBuffer[s]) {
-                    printf("%c compare to %c\n",firstPathBuffer[f],secondPathBuffer[s]);
                     f++;
                     s++;
                     continue;
                 }
-                printf("got here????????\n");
                 close(fptr);
                 close(sptr);
                 return 2;
@@ -214,10 +196,6 @@ int main(int argc, const char *argv[]) {
         if (s == 0) {
             setStringToCompare(firstPathBuffer);
             fLength = strlen(firstPathBuffer) ;
-        }
-        if (s == 0) {
-            setStringToCompare(secondPathBuffer);
-            sLength = strlen(secondPathBuffer) - 1;
         }
         while (sBuffer != 0) {
             if (f == 0) {
@@ -249,24 +227,22 @@ int main(int argc, const char *argv[]) {
     }
     close(fptr);
     close(sptr);
-    printf("got here?");
     return 3;
 }
 
 
-void makeAllUpperCase(char buffer[SIZE + 1]) {
+void makeAllUpperCase(char buffer[SIZE]) {
     int i;
     for (i = 0; i < strlen(buffer); ++i) {
-        if (buffer[i] >= 97 && buffer[i] <= 123) {
+        if (buffer[i] >= LOWER_A && buffer[i] <= LOWER_Z) {
             buffer[i] -= 32;
         }
     }
 }
 
-void removeSpacesAndNewLines(char buffer[SIZE + 1]) {
-    printf("the given buffer : %s \t ",buffer);
-    char newBufferNoSpace[SIZE + 1];
-    char returnBuffer[SIZE + 1];
+void removeSpacesAndNewLines(char buffer[SIZE]) {
+    char newBufferNoSpace[SIZE];
+    char returnBuffer[SIZE];
     clearString(newBufferNoSpace);
     clearString(returnBuffer);
     char *token = strtok(buffer, SPACE);
@@ -280,11 +256,10 @@ void removeSpacesAndNewLines(char buffer[SIZE + 1]) {
         token2 = strtok(NULL, ENTER);
     }
     strcpy(buffer, returnBuffer);
-    printf("return : %s \n ",buffer);
 }
 
 
-void setStringToCompare(char buffer[SIZE + 1]) {
+void setStringToCompare(char buffer[SIZE]) {
     removeSpacesAndNewLines(buffer);
     makeAllUpperCase(buffer);
 }
