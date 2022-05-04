@@ -26,11 +26,12 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
     pid_t childID;
-    char *argvChild[SIZE] = {"gcc"};
+    char *argvChild[SIZE] = {"gcc", "-o", "b.out"};
     char pathDIR[SIZE];
     char pathInput[SIZE];
     char pathOutput[SIZE];
     char inDir[SIZE];
+    int statChild;
     int fptr = open(argv[1], O_RDONLY);
     if (fptr < 0) {
         perror("after open");
@@ -70,6 +71,7 @@ int main(int argc, const char *argv[]) {
         exit(-1);
     }
     printf("Directory stream is now open\n");
+    int countCFiles;
     while ((dit = readdir(dip)) != NULL) {
         strcpy(inDir, pathDIR);
         strcat(inDir, SLASH);
@@ -80,11 +82,13 @@ int main(int argc, const char *argv[]) {
                 perror("problem open dir\n");
                 exit(-1);
             }
-            argvChild[1] = (char *) malloc(SIZE);
+            argvChild[3] = (char *) malloc(SIZE);
+            countCFiles = 0;
             while ((dit2 = readdir(dip2)) != NULL) {
                 lenFile = strlen(dit2->d_name);
                 //checks if the file is the c file
                 if (dit2->d_name[lenFile - 1] == 'c') {
+                    countCFiles++;
                     printf("\n%s\n", dit2->d_name);
                     //The fork got an error
                     if ((childID = fork()) == -1) {
@@ -93,11 +97,12 @@ int main(int argc, const char *argv[]) {
                     }
                         //The child
                     else if (childID == 0) {
-                        clearString(argvChild[1]);
-                        strcpy(argvChild[1], inDir);
-                        strcat(argvChild[1], SLASH);
-                        strcat(argvChild[1], dit2->d_name);
-                        printf("the compile file is : %s\n",argvChild[1]);
+                        clearString(argvChild[3]);
+                        strcpy(argvChild[3], inDir);
+                        strcat(argvChild[3], SLASH);
+                        strcat(argvChild[3], dit2->d_name);
+                        // NEED ALSO THE EXCUTING + WRITING + ALL
+                        printf("the compile file is : %s\n", argvChild[3]);
                         if (execvp(argvChild[0], argvChild) == -1) {
                             perror("exec failed");
                             exit(-1);
@@ -105,22 +110,44 @@ int main(int argc, const char *argv[]) {
                     }
                         //The father
                     else {
-                        if (wait(&stat) == -1)
+                        if (wait(&statChild) == -1)
                             perror("wait failed");
-
+                        if ((childID = fork()) == -1) {
+                            perror("fork failed");
+                            exit(-1);
+                        }
+                            //The child
+                        else if (childID == 0) {
+                            char *arg2[SIZE] = {"./b.out","<","5 5",">","outputB.txt"};
+                            if (execvp(arg2[0], arg2) == -1) {
+                                perror("exec failed");
+                                exit(-1);
+                            }
+                        }
+                        //The father
+                        else {
+                            if (wait(&statChild) == -1)
+                                perror("wait failed");
+                            printf("ok\n");
+                        }
                     }
                 }
             }
-            //frees the argvChild allocated
-
+            //the deer has no c files
+            if (countCFiles == 0) {
+                //NEED TO HANDLE IT!
+                continue;
+            }
 
             if (closedir(dip2) == -1) {
                 perror("problem close dir\n");
                 exit(-1);
             }
         }
-        free(argvChild[1]);
-        argvChild[1] = NULL;
+        //frees the argvChild allocated
+
+        free(argvChild[3]);
+        argvChild[3] = NULL;
     }
 
     if (closedir(dip) == -1) {
