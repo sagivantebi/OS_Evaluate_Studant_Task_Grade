@@ -25,6 +25,8 @@ int main(int argc, const char *argv[]) {
         printf("Not enough Arguments\n");
         exit(1);
     }
+    pid_t childID;
+    char *argvChild[SIZE] = {"gcc"};
     char pathDIR[SIZE];
     char pathInput[SIZE];
     char pathOutput[SIZE];
@@ -78,20 +80,47 @@ int main(int argc, const char *argv[]) {
                 perror("problem open dir\n");
                 exit(-1);
             }
+            argvChild[1] = (char *) malloc(SIZE);
             while ((dit2 = readdir(dip2)) != NULL) {
                 lenFile = strlen(dit2->d_name);
                 //checks if the file is the c file
                 if (dit2->d_name[lenFile - 1] == 'c') {
-                    printf("\n%s\n",dit2->d_name);
-                }
+                    printf("\n%s\n", dit2->d_name);
+                    //The fork got an error
+                    if ((childID = fork()) == -1) {
+                        perror("fork failed");
+                        exit(-1);
+                    }
+                        //The child
+                    else if (childID == 0) {
+                        clearString(argvChild[1]);
+                        strcpy(argvChild[1], inDir);
+                        strcat(argvChild[1], SLASH);
+                        strcat(argvChild[1], dit2->d_name);
+                        printf("the compile file is : %s\n",argvChild[1]);
+                        if (execvp(argvChild[0], argvChild) == -1) {
+                            perror("exec failed");
+                            exit(-1);
+                        }
+                    }
+                        //The father
+                    else {
+                        if (wait(&stat) == -1)
+                            perror("wait failed");
 
+                    }
+                }
             }
+            //frees the argvChild allocated
+
 
             if (closedir(dip2) == -1) {
                 perror("problem close dir\n");
                 exit(-1);
             }
         }
+        free(argvChild[1]);
+        argvChild[1] = NULL;
     }
 
     if (closedir(dip) == -1) {
