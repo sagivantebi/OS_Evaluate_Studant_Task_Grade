@@ -15,7 +15,6 @@
 #define LOWER_A 97
 #define LOWER_Z 123
 
-int checkIfLettersEqual(char a, char b);
 
 void removeSpacesAndNewLines(char buffer[SIZE]);
 
@@ -299,7 +298,6 @@ void makeAllUpperCase(char buffer[SIZE]) {
 }
 
 void removeSpacesAndNewLines(char buffer[SIZE]) {
-//    printf("the given buffer : %s \t ",buffer);
     char newBufferNoSpace[SIZE];
     char returnBuffer[SIZE];
     clearString(newBufferNoSpace);
@@ -315,7 +313,6 @@ void removeSpacesAndNewLines(char buffer[SIZE]) {
         token2 = strtok(NULL, ENTER);
     }
     strcpy(buffer, returnBuffer);
-//    printf("return : %s \n ",buffer);
 }
 
 
