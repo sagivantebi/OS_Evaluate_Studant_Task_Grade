@@ -9,17 +9,25 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <time.h>
 
 #define SIZE 150
 #define ENTER "\n"
 #define SLASH "/"
-#define COMMA ","
+#define DOT "."
+#define TDOT ".."
 
 void clearString(char buffer[SIZE]);
 
 int checkIfDir(char path[SIZE]);
 
-void checkCompResult(char comp[SIZE]);
+void checkCompResult(char comp[SIZE], int childResult);
+
+void checkIfPathsAreValid(char dir[SIZE], char input[SIZE], char output[SIZE]);
+
+void createCsvAndError();
+
+void writeToResultCSV(char resultToAdd[SIZE]);
 
 int main(int argc, const char *argv[]) {
     if (argc != 2) {
@@ -32,7 +40,11 @@ int main(int argc, const char *argv[]) {
     char pathInput[SIZE];
     char pathOutput[SIZE];
     char inDir[SIZE];
+    char resultToAdd[SIZE];
     int statChild;
+    int resultLen;
+    int writeToResult;
+    time_t start_t, end_t, total_t;
     int fptr = open(argv[1], O_RDONLY);
     if (fptr < 0) {
         perror("Error in: open\n");
@@ -55,24 +67,9 @@ int main(int argc, const char *argv[]) {
         token = strtok(NULL, ENTER);
     }
     close(fptr);
-    //do all the test to check if the given args are valid to use
-    //check if it's a dir path
-    if (checkIfDir(pathDIR) == 0) {
-        perror("Not a valid directory\n");
-        exit(-1);
-    }
 
-
-
-    //create the csv file
-    int writeToResult = open("results.csv",O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (writeToResult < 0) {
-        perror("Error in: open");
-        exit(-1);
-    }
-    close(writeToResult);
-
-
+    checkIfPathsAreValid(pathDIR, pathInput, pathOutput);
+    createCsvAndError();
 
     //Start explore the dir
     DIR *dip;
@@ -122,8 +119,13 @@ int main(int argc, const char *argv[]) {
                     else {
                         if (wait(&statChild) == -1)
                             perror("Error in: wait\n");
-                        //need to search here for the ./b.out file
-                        if ((childID = fork()) == -1) {
+                        int childExitStat = WEXITSTATUS(statChild);
+                        if (childExitStat == 1) {
+                            clearString(resultToAdd);
+                            strcpy(resultToAdd, dit->d_name);
+                            strcat(resultToAdd, ",10,COMPILATION_ERROR\n");
+                            writeToResultCSV(resultToAdd);
+                        }else if ((childID = fork()) == -1) {
                             perror("Error in: fork\n");
                             exit(-1);
                         }
@@ -152,6 +154,7 @@ int main(int argc, const char *argv[]) {
                             close(out);
 
                             char *arg2[SIZE] = {"./b.out"};
+
                             if (execvp(arg2[0], arg2) == -1) {
                                 perror("Error in: execvp\n");
                                 exit(-1);
@@ -159,22 +162,23 @@ int main(int argc, const char *argv[]) {
                         }
                             //The father
                         else {
+                            start_t = time(NULL);
                             if (wait(&statChild) == -1)
                                 perror("Error in: wait\n");
-                            if ((childID = fork()) == -1) {
+                            end_t = time(NULL);
+                            total_t = end_t - start_t;
+                            if (total_t > 5) {
+                                printf("more than 5 sec");
+                                clearString(resultToAdd);
+                                strcpy(resultToAdd, dit->d_name);
+                                strcat(resultToAdd, ",20,TIMEOUT\n");
+                                writeToResultCSV(resultToAdd);
+                            } else if ((childID = fork()) == -1) {
                                 perror("Error in: fork\n");
                                 exit(-1);
                             }
                                 //The child
                             else if (childID == 0) {
-                                int outComp;
-                                outComp = open("outComp.txt", O_WRONLY | O_TRUNC | O_CREAT, 0644);
-                                if (outComp < 0) {
-                                    perror("Error in: open\n");
-                                    exit(-1);
-                                }
-                                dup2(outComp, 1);
-                                close(outComp);
                                 char *arg3[SIZE] = {"./comp.out", "out.txt", pathOutput};
                                 if (execvp(arg3[0], arg3) == -1) {
                                     perror("Error in: execvp\n");
@@ -183,75 +187,40 @@ int main(int argc, const char *argv[]) {
                             }
                                 //The father
                             else {
+                                int boolToAdd = 1;
+                                clearString(resultToAdd);
+                                strcpy(resultToAdd, dit->d_name);
                                 if (wait(&statChild) == -1)
                                     perror("Error in: wait\n");
-                                printf("ok\n");
-                                if ((childID = fork()) == -1) {
-                                    perror("Error in: fork\n");
-                                    exit(-1);
+                                if (wait(&statChild) > 5) {
+                                    strcat(resultToAdd, ",20,TIMEOUT\n");
+                                    boolToAdd = 0;
                                 }
-                                    //The child
-                                else if (childID == 0) {
-                                    int outComp;
-                                    outComp = open("outCompResult.txt", O_WRONLY | O_TRUNC | O_CREAT, 0644);
-                                    if (outComp < 0) {
-                                        perror("Error in: open\n");
-                                        exit(-1);
-                                    }
-                                    dup2(outComp, 1);
-                                    close(outComp);
-                                    char *arg4[SIZE] = {"echo","$?"};
-                                    if (execvp(arg4[0], arg4) == -1) {
-                                        perror("Error in: execvp\n");
-                                        exit(-1);
-                                    }
-                                } else {
-                                    if (wait(&statChild) == -1)
-                                        perror("Error in: wait\n");
-                                    int openCompRes = open("outCompResult.txt",O_RDONLY);
-                                    if (openCompRes < 0) {
-                                        perror("Error in: open");
-                                        exit(-1);
-                                    }
+                                int childResult = WEXITSTATUS(statChild);
+                                printf("the childResult is:\t %d\n", childResult);
+                                if (boolToAdd) {
                                     char bufferComp[SIZE];
-                                    int openCompResBuffer = read(openCompRes, bufferComp, SIZE);
-                                    if (openCompResBuffer < 0) {
-                                        perror("Error in: read");
-                                        exit(-1);
-                                    }
-                                    close(openCompRes);
-                                    checkCompResult(bufferComp);
-                                    writeToResult = open("results.csv",O_WRONLY | O_APPEND);
-                                    if (writeToResult < 0) {
-                                        perror("Error in: open");
-                                        exit(-1);
-                                    }
-                                    char resultToAdd[SIZE];
-                                    strcpy(resultToAdd,dit->d_name);
-                                    strcat(resultToAdd,bufferComp);
-                                    int resultLen = strlen(resultToAdd);
-                                    if(write(writeToResult,resultToAdd, resultLen)!=resultLen)
-                                    {
-                                        perror("Error in: write");
-                                        close(writeToResult);
-                                        exit(-1);
-                                    }
-                                    close(writeToResult);
-                                    printf("ok\n");
+                                    checkCompResult(bufferComp, childResult);
+                                    strcat(resultToAdd, bufferComp);
                                 }
+                                writeToResultCSV(resultToAdd);
                             }
                         }
                     }
                 }
             }
             //the deer has no c files
-            if (countCFiles == 0) {
-                //NEED TO HANDLE IT!
-                continue;
-            }
 
+            if (countCFiles == 0) {
+                if (strcmp(dit->d_name, DOT) != 0 && strcmp(dit->d_name, TDOT) != 0) {
+                    clearString(resultToAdd);
+                    strcpy(resultToAdd, dit->d_name);
+                    strcat(resultToAdd, ",0,NO_C_FILE\n");
+                    writeToResultCSV(resultToAdd);
+                }
+            }
             if (closedir(dip2) == -1) {
-                perror("problem close dir\n");
+                perror("Error in: closedir");
                 exit(-1);
             }
         }
@@ -262,20 +231,89 @@ int main(int argc, const char *argv[]) {
     }
 
     if (closedir(dip) == -1) {
-        perror("problem close dir\n");
+        perror("Error in: closedir");
         exit(-1);
     }
-
-    printf("\nDirectory stream is now closed\n");
+    remove("b.out");
+    remove("out.txt");
 
 }
 
-void checkCompResult(char comp[SIZE]) {
-    if(strcmp(comp,"1")==0)
-        strcpy(comp,",100,EXCELLENT\n");
-    if(strcmp(comp,"2")==0)
-        strcpy(comp,",50,WRONG\n");
-    strcpy(comp,",75,SIMILAR\n");
+void writeToResultCSV(char resultToAdd[SIZE]) {
+    int writeToResult = open("results.csv", O_WRONLY | O_APPEND);
+    if (writeToResult < 0) {
+        perror("Error in: open");
+        exit(-1);
+    }
+    int resultLen = strlen(resultToAdd);
+    if (write(writeToResult, resultToAdd, resultLen) != resultLen) {
+        perror("Error in: write");
+        close(writeToResult);
+        exit(-1);
+    }
+    close(writeToResult);
+}
+
+void createCsvAndError() {
+    //create the csv file
+    int writeToResult = open("results.csv", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (writeToResult < 0) {
+        perror("Error in: open");
+        exit(-1);
+    }
+    close(writeToResult);
+
+    //create the error.txt file
+    int errorFile = open("error.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (errorFile < 0) {
+        perror("Error in: open");
+        exit(-1);
+    }
+    close(errorFile);
+}
+
+void checkIfPathsAreValid(char dir[150], char input[150], char output[150]) {
+    //check if it's a dir path
+    if (checkIfDir(dir) == 0) {
+        perror("Not a valid directory\n");
+        exit(-1);
+    }
+    int fptr = open(input, O_RDONLY);
+    if (fptr < 0) {
+        perror("Input file not exist\n");
+        exit(-1);
+    }
+    char buffer[SIZE];
+    //reading the path content
+    ssize_t fBuffer = read(fptr, buffer, SIZE);
+    if (fBuffer < 0) {
+        perror("Input file not exist\n");
+        exit(-1);
+    }
+    close(fptr);
+    fptr = open(output, O_RDONLY);
+    if (fptr < 0) {
+        perror("Output file not exist\n");
+        exit(-1);
+    }
+    char buffer1[SIZE];
+    //reading the path content
+    ssize_t fBuffer1 = read(fptr, buffer1, SIZE);
+    if (fBuffer < 0) {
+        perror("Output file not exist\n");
+        exit(-1);
+    }
+    close(fptr);
+}
+
+void checkCompResult(char comp[SIZE], int childResult) {
+    clearString(comp);
+    if (childResult == 1)
+        strcpy(comp, ",100,EXCELLENT\n");
+    else if (childResult == 2)
+        strcpy(comp, ",50,WRONG\n");
+    else
+        strcpy(comp, ",75,SIMILAR\n");
 }
 
 void clearString(char buffer[SIZE]) {
@@ -288,7 +326,7 @@ void clearString(char buffer[SIZE]) {
 int checkIfDir(char path[SIZE]) {
     struct stat statBuf;
     if (stat(path, &statBuf) == -1) {
-        perror("Error in:stat");
+        perror("Error in: stat");
     }
     return S_ISDIR(statBuf.st_mode);
 }
