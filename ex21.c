@@ -2,10 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 
 
@@ -25,6 +22,7 @@ void setStringToCompare(char buffer[SIZE]);
 void clearString(char buffer[SIZE]);
 
 int main(int argc, const char *argv[]) {
+    int numToReturn = 2;
     char firstPathBuffer[SIZE], secondPathBuffer[SIZE];
     int fBuffer, sBuffer;
     if (argc != 3) {
@@ -36,24 +34,24 @@ int main(int argc, const char *argv[]) {
     }
     int fptr = open(argv[1], O_RDONLY);
     if (fptr < 0) {
-        perror("after open");
+        perror("Error in: open");
         exit(-1);
     }
     int sptr = open(argv[2], O_RDONLY);
     if (sptr < 0) {
-        perror("after open");
+        perror("Error in: open");
         exit(-1);
     }
     //reading the first path content
     fBuffer = read(fptr, firstPathBuffer, SIZE);
     if (fBuffer < 0) {
-        perror("read failed");
+        perror("Error in: read");
         exit(-1);
     }
     //reading the second path content
     sBuffer = read(sptr, secondPathBuffer, SIZE);
     if (sBuffer < 0) {
-        perror("read failed");
+        perror("Error in: read");
         exit(-1);
     }
     //Check if the text is short then do only those text
@@ -76,7 +74,7 @@ int main(int argc, const char *argv[]) {
     }
     int s, f;
     //check if the strings are equal
-    int identicalBool = 1;
+    int identicalBool = 0;
     f = 0;
     s = 0;
     int fLength, sLength;
@@ -84,6 +82,7 @@ int main(int argc, const char *argv[]) {
         if ((strcmp(firstPathBuffer, secondPathBuffer) == 0) && (f == 0) && (s == 0)) {
             f = fLength;
             s = sLength;
+            identicalBool = 1;
         } else {
             if (f == 0) {
                 setStringToCompare(firstPathBuffer);
@@ -111,7 +110,7 @@ int main(int argc, const char *argv[]) {
             clearString(firstPathBuffer);
             fBuffer = read(fptr, firstPathBuffer, SIZE);
             if (fBuffer < 0) {
-                perror("read failed");
+                perror("Error in: read");
                 exit(-1);
             }
             f = 0;
@@ -121,7 +120,7 @@ int main(int argc, const char *argv[]) {
             clearString(secondPathBuffer);
             sBuffer = read(sptr, secondPathBuffer, SIZE);
             if (sBuffer < 0) {
-                perror("read failed");
+                perror("Error in: read");
                 exit(-1);
             }
             s = 0;
@@ -180,12 +179,23 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
+            if(f == fLength && s != sLength){
+                close(fptr);
+                close(sptr);
+                return 2;
+
+            }
+            if(f == fLength && s == sLength){
+                close(fptr);
+                close(sptr);
+                return 3;
+            }
             if (s == sLength) {
                 //reading the second path content
                 clearString(secondPathBuffer);
                 sBuffer = read(sptr, secondPathBuffer, SIZE);
                 if (sBuffer < 0) {
-                    perror("read failed");
+                    perror("Error in: read");
                     exit(-1);
                 }
                 s = 0;
@@ -194,13 +204,13 @@ int main(int argc, const char *argv[]) {
 
     }else if (sBuffer < SIZE) {
         if (s == 0) {
-            setStringToCompare(firstPathBuffer);
-            fLength = strlen(firstPathBuffer) ;
+            setStringToCompare(secondPathBuffer);
+            sLength = strlen(secondPathBuffer) ;
         }
-        while (sBuffer != 0) {
+        while (fBuffer != 0) {
             if (f == 0) {
                 setStringToCompare(firstPathBuffer);
-                fLength = strlen(firstPathBuffer) ;
+                fLength = strlen(firstPathBuffer);
             }
             while (s != sLength && f != fLength) {
                 if (firstPathBuffer[f] == secondPathBuffer[s]) {
@@ -212,12 +222,23 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
+            if(s == sLength && f != fLength){
+                close(fptr);
+                close(sptr);
+                return 2;
+
+            }
+            if(s == sLength && f == fLength){
+                close(fptr);
+                close(sptr);
+                return 3;
+            }
             if (f == fLength) {
                 //reading the second path content
                 clearString(firstPathBuffer);
                 fBuffer = read(fptr, firstPathBuffer, SIZE);
-                if (fBuffer < 0) {
-                    perror("read failed");
+                if (sBuffer < 0) {
+                    perror("Error in: read");
                     exit(-1);
                 }
                 f = 0;
