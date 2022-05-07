@@ -16,8 +16,6 @@
 
 void clearString(char buffer[SIZE]);
 
-void getThePathsFromFile(const char *path, char pathDIR[SIZE], char pathInput[SIZE], char pathOutput[SIZE]);
-
 int checkIfDir(char path[SIZE]);
 
 int main(int argc, const char *argv[]) {
@@ -34,14 +32,14 @@ int main(int argc, const char *argv[]) {
     int statChild;
     int fptr = open(argv[1], O_RDONLY);
     if (fptr < 0) {
-        perror("after open");
+        perror("Error in:open\n");
         exit(-1);
     }
     char buffer[SIZE * 3];
     //reading the path content
     ssize_t fBuffer = read(fptr, buffer, SIZE * 3);
     if (fBuffer < 0) {
-        perror("read failed");
+        perror("Error in:read\n");
         exit(-1);
     }
     char *token = strtok(buffer, ENTER);
@@ -67,7 +65,7 @@ int main(int argc, const char *argv[]) {
     struct dirent *dit2;
     int lenFile;
     if (((dip = opendir(pathDIR)) == NULL)) {
-        perror("problem open dir\n");
+        perror("Error in:opendir\n");
         exit(-1);
     }
     printf("Directory stream is now open\n");
@@ -79,10 +77,10 @@ int main(int argc, const char *argv[]) {
         //checks if the new path is a dir
         if (checkIfDir(inDir) != 0) {
             if (((dip2 = opendir(inDir)) == NULL)) {
-                perror("problem open dir\n");
-                exit(-1);
+                perror("Error in:opendir\n");
             }
             argvChild[3] = (char *) malloc(SIZE);
+            //need to check if malloc failed
             countCFiles = 0;
             while ((dit2 = readdir(dip2)) != NULL) {
                 lenFile = strlen(dit2->d_name);
@@ -92,8 +90,7 @@ int main(int argc, const char *argv[]) {
                     printf("\n%s\n", dit2->d_name);
                     //The fork got an error
                     if ((childID = fork()) == -1) {
-                        perror("fork failed");
-                        exit(-1);
+                        perror("Error in:opendir\n");
                     }
                         //The child
                     else if (childID == 0) {
@@ -112,13 +109,31 @@ int main(int argc, const char *argv[]) {
                     else {
                         if (wait(&statChild) == -1)
                             perror("wait failed");
+                        //need to search here for the ./b.out file
                         if ((childID = fork()) == -1) {
                             perror("fork failed");
                             exit(-1);
                         }
-                            //The child
+                         //The child
                         else if (childID == 0) {
-                            char *arg2[SIZE] = {"./b.out","<",pathInput,">","outputB.txt"};
+                            int in, out;
+                            // open input and output files
+                            in = open(pathInput, O_RDONLY);
+
+                            out = open("out.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWGRP | S_IWUSR);
+
+                            // replace standard input with input file
+                            dup2(in, 0);
+
+                            // replace standard output with output file
+                            dup2(out, 1);
+
+                            // close unused file descriptors
+                            close(in);
+                            close(out);
+
+                            // execute grep
+                            char *arg2[SIZE] = {"./b.out"};
                             if (execvp(arg2[0], arg2) == -1) {
                                 perror("exec failed");
                                 exit(-1);
@@ -168,8 +183,9 @@ void clearString(char buffer[SIZE]) {
 
 int checkIfDir(char path[SIZE]) {
     struct stat statBuf;
-    if (stat(path, &statBuf) != 0)
-        return 0;
+    if (stat(path, &statBuf) == -1) {
+        perror("Error in:stat");
+    }
     return S_ISDIR(statBuf.st_mode);
 }
 
