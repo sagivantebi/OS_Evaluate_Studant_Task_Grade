@@ -139,11 +139,11 @@ int main(int argc, const char *argv[]) {
     } else if ((fBuffer < SIZE) && (sBuffer < SIZE)) {
         if (f == 0) {
             setStringToCompare(firstPathBuffer);
-            fLength = strlen(firstPathBuffer) ;
+            fLength = strlen(firstPathBuffer);
         }
         if (s == 0) {
             setStringToCompare(secondPathBuffer);
-            sLength = strlen(secondPathBuffer) ;
+            sLength = strlen(secondPathBuffer);
         }
         identicalBool = 0;
         while (s != sLength && f != fLength) {
@@ -162,7 +162,7 @@ int main(int argc, const char *argv[]) {
     } else if (fBuffer < SIZE) {
         if (f == 0) {
             setStringToCompare(firstPathBuffer);
-            fLength = strlen(firstPathBuffer) ;
+            fLength = strlen(firstPathBuffer);
         }
         while (sBuffer != 0) {
             if (s == 0) {
@@ -179,13 +179,13 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
-            if(f == fLength && s != sLength){
+            if (f == fLength && s != sLength) {
                 close(fptr);
                 close(sptr);
                 return 2;
 
             }
-            if(f == fLength && s == sLength){
+            if (f == fLength && s == sLength) {
                 close(fptr);
                 close(sptr);
                 return 3;
@@ -202,10 +202,10 @@ int main(int argc, const char *argv[]) {
             }
         }
 
-    }else if (sBuffer < SIZE) {
+    } else if (sBuffer < SIZE) {
         if (s == 0) {
             setStringToCompare(secondPathBuffer);
-            sLength = strlen(secondPathBuffer) ;
+            sLength = strlen(secondPathBuffer);
         }
         while (fBuffer != 0) {
             if (f == 0) {
@@ -222,13 +222,13 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
-            if(s == sLength && f != fLength){
+            if (s == sLength && f != fLength) {
                 close(fptr);
                 close(sptr);
                 return 2;
 
             }
-            if(s == sLength && f == fLength){
+            if (s == sLength && f == fLength) {
                 close(fptr);
                 close(sptr);
                 return 3;
@@ -285,9 +285,9 @@ void setStringToCompare(char buffer[SIZE]) {
     makeAllUpperCase(buffer);
 }
 
-void clearString(char buffer[SIZE]){
+void clearString(char buffer[SIZE]) {
     int h;
-    for (h = 0; h < SIZE ; ++h) {
+    for (h = 0; h < SIZE; ++h) {
         buffer[h] = '\0';
     }
 
