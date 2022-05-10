@@ -9,13 +9,13 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <time.h>
 
 #define SIZE 150
 #define ENTER "\n"
 #define SLASH "/"
 #define DOT "."
 #define TDOT ".."
+#define ERROR_MSG "Error in: "
 
 void clearString(char buffer[SIZE]);
 
@@ -29,10 +29,17 @@ void createCsvAndError();
 
 void writeToResultCSV(char resultToAdd[SIZE]);
 
+void doingExecvp(char *argvs[SIZE]);
+
+void errorWriting(char errorToWrite[SIZE]);
+
+void errorWritingSpecificString(char errorToWrite[SIZE]);
+
 int main(int argc, const char *argv[]) {
+    createCsvAndError();
     if (argc != 2) {
-        printf("Not enough Arguments\n");
-        exit(1);
+        errorWriting("argc");
+        exit(-1);
     }
     pid_t childID;
     char *argvChild[SIZE] = {"gcc", "-o", "b.out"};
@@ -42,19 +49,16 @@ int main(int argc, const char *argv[]) {
     char inDir[SIZE];
     char resultToAdd[SIZE];
     int statChild;
-    int resultLen;
-    int writeToResult;
-    time_t start_t, end_t, total_t;
     int fptr = open(argv[1], O_RDONLY);
     if (fptr < 0) {
-        perror("Error in: open\n");
+        errorWriting("open");
         exit(-1);
     }
     char buffer[SIZE * 3];
     //reading the path content
     ssize_t fBuffer = read(fptr, buffer, SIZE * 3);
     if (fBuffer < 0) {
-        perror("Error in: read\n");
+        errorWriting("read");
         exit(-1);
     }
     char *token = strtok(buffer, ENTER);
@@ -69,7 +73,7 @@ int main(int argc, const char *argv[]) {
     close(fptr);
 
     checkIfPathsAreValid(pathDIR, pathInput, pathOutput);
-    createCsvAndError();
+
 
     //Start explore the dir
     DIR *dip;
@@ -78,7 +82,7 @@ int main(int argc, const char *argv[]) {
     struct dirent *dit2;
     int lenFile;
     if (((dip = opendir(pathDIR)) == NULL)) {
-        perror("Error in: opendir\n");
+        errorWriting("opendir");
         exit(-1);
     }
     int countCFiles;
@@ -89,7 +93,7 @@ int main(int argc, const char *argv[]) {
         //checks if the new path is a dir
         if (checkIfDir(inDir) != 0) {
             if (((dip2 = opendir(inDir)) == NULL)) {
-                perror("Error in: opendir\n");
+                errorWriting("opendir");
             }
             argvChild[3] = (char *) malloc(SIZE);
             //need to check if malloc failed
@@ -99,10 +103,15 @@ int main(int argc, const char *argv[]) {
                 //checks if the file is the c file
                 if (dit2->d_name[lenFile - 1] == 'c') {
                     countCFiles++;
-                    printf("\n%s\n", dit2->d_name);
                     //The fork got an error
+                    int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
+                    if (error < 0) {
+                        errorWriting("open");
+                    }
+                    dup2(error, 2);
+                    close(error);
                     if ((childID = fork()) == -1) {
-                        perror("Error in: fork\n");
+                        errorWriting("fork");
                     }
                         //The child
                     else if (childID == 0) {
@@ -110,23 +119,23 @@ int main(int argc, const char *argv[]) {
                         strcpy(argvChild[3], inDir);
                         strcat(argvChild[3], SLASH);
                         strcat(argvChild[3], dit2->d_name);
-                        if (execvp(argvChild[0], argvChild) == -1) {
-                            perror("Error in: execvp\n");
-                            exit(-1);
-                        }
+
+                        doingExecvp(argvChild);
+
+
                     }
                         //The father
                     else {
                         if (wait(&statChild) == -1)
-                            perror("Error in: wait\n");
+                            errorWriting("wait");
                         int childExitStat = WEXITSTATUS(statChild);
                         if (childExitStat == 1) {
                             clearString(resultToAdd);
                             strcpy(resultToAdd, dit->d_name);
                             strcat(resultToAdd, ",10,COMPILATION_ERROR\n");
                             writeToResultCSV(resultToAdd);
-                        }else if ((childID = fork()) == -1) {
-                            perror("Error in: fork\n");
+                        } else if ((childID = fork()) == -1) {
+                            errorWriting("fork");
                             exit(-1);
                         }
                             //The child
@@ -135,13 +144,11 @@ int main(int argc, const char *argv[]) {
                             // open input and output files
                             in = open(pathInput, O_RDONLY);
                             if (in < 0) {
-                                perror("Error in: open\n");
-                                exit(-1);
+                                errorWriting("open");
                             }
                             out = open("out.txt", O_WRONLY | O_TRUNC | O_CREAT, 0644);
                             if (out < 0) {
-                                perror("Error in: open\n");
-                                exit(-1);
+                                errorWriting("open");
                             }
                             // replace standard input with input file
                             dup2(in, 0);
@@ -155,35 +162,21 @@ int main(int argc, const char *argv[]) {
 
                             char *arg2[SIZE] = {"./b.out"};
 
-                            if (execvp(arg2[0], arg2) == -1) {
-                                perror("Error in: execvp\n");
-                                exit(-1);
-                            }
+                            doingExecvp(arg2);
                         }
                             //The father
                         else {
-                            start_t = time(NULL);
+
                             if (wait(&statChild) == -1)
-                                perror("Error in: wait\n");
-                            end_t = time(NULL);
-                            total_t = end_t - start_t;
-                            if (total_t > 5) {
-                                printf("more than 5 sec");
-                                clearString(resultToAdd);
-                                strcpy(resultToAdd, dit->d_name);
-                                strcat(resultToAdd, ",20,TIMEOUT\n");
-                                writeToResultCSV(resultToAdd);
-                            } else if ((childID = fork()) == -1) {
-                                perror("Error in: fork\n");
+                                errorWriting("wait");
+                            if ((childID = fork()) == -1) {
+                                errorWriting("fork");
                                 exit(-1);
                             }
                                 //The child
                             else if (childID == 0) {
                                 char *arg3[SIZE] = {"./comp.out", "out.txt", pathOutput};
-                                if (execvp(arg3[0], arg3) == -1) {
-                                    perror("Error in: execvp\n");
-                                    exit(-1);
-                                }
+                                doingExecvp(arg3);
                             }
                                 //The father
                             else {
@@ -191,13 +184,8 @@ int main(int argc, const char *argv[]) {
                                 clearString(resultToAdd);
                                 strcpy(resultToAdd, dit->d_name);
                                 if (wait(&statChild) == -1)
-                                    perror("Error in: wait\n");
-                                if (wait(&statChild) > 5) {
-                                    strcat(resultToAdd, ",20,TIMEOUT\n");
-                                    boolToAdd = 0;
-                                }
+                                    errorWriting("wait");
                                 int childResult = WEXITSTATUS(statChild);
-                                printf("the childResult is:\t %d\n", childResult);
                                 if (boolToAdd) {
                                     char bufferComp[SIZE];
                                     checkCompResult(bufferComp, childResult);
@@ -220,8 +208,7 @@ int main(int argc, const char *argv[]) {
                 }
             }
             if (closedir(dip2) == -1) {
-                perror("Error in: closedir");
-                exit(-1);
+                errorWriting("closedir");
             }
         }
         //frees the argvChild allocated
@@ -231,25 +218,49 @@ int main(int argc, const char *argv[]) {
     }
 
     if (closedir(dip) == -1) {
-        perror("Error in: closedir");
-        exit(-1);
+        errorWriting("closedir");
     }
     remove("b.out");
     remove("out.txt");
+}
 
+void doingExecvp(char *argvs[SIZE]) {
+    if (execvp(argvs[0], argvs) == -1)
+        errorWriting(argvs[0]);
+
+}
+
+void errorWriting(char errorToWrite[SIZE]) {
+    int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
+    char errorString[SIZE];
+    int errorLength;
+    strcpy(errorString, ERROR_MSG);
+    strcat(errorString, errorToWrite);
+    strcat(errorString, ENTER);
+    errorLength = strlen(errorString);
+    write(error, errorString, errorLength);
+    close(error);
+}
+
+void errorWritingSpecificString(char errorToWrite[SIZE]) {
+    int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
+    char errorString[SIZE];
+    int errorLength;
+    strcpy(errorString, errorToWrite);
+    errorLength = strlen(errorString);
+    write(error, errorString, errorLength);
+    close(error);
 }
 
 void writeToResultCSV(char resultToAdd[SIZE]) {
     int writeToResult = open("results.csv", O_WRONLY | O_APPEND);
     if (writeToResult < 0) {
-        perror("Error in: open");
-        exit(-1);
+        errorWriting("open");
     }
     int resultLen = strlen(resultToAdd);
     if (write(writeToResult, resultToAdd, resultLen) != resultLen) {
-        perror("Error in: write");
+        errorWriting("write");
         close(writeToResult);
-        exit(-1);
     }
     close(writeToResult);
 }
@@ -258,16 +269,14 @@ void createCsvAndError() {
     //create the csv file
     int writeToResult = open("results.csv", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (writeToResult < 0) {
-        perror("Error in: open");
-        exit(-1);
+        errorWriting("open");
     }
     close(writeToResult);
 
     //create the error.txt file
     int errorFile = open("error.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (errorFile < 0) {
-        perror("Error in: open");
-        exit(-1);
+        errorWriting("open");
     }
     close(errorFile);
 }
@@ -275,32 +284,32 @@ void createCsvAndError() {
 void checkIfPathsAreValid(char dir[150], char input[150], char output[150]) {
     //check if it's a dir path
     if (checkIfDir(dir) == 0) {
-        perror("Not a valid directory\n");
+        errorWritingSpecificString("Not a valid directory\n");
         exit(-1);
     }
     int fptr = open(input, O_RDONLY);
     if (fptr < 0) {
-        perror("Input file not exist\n");
+        errorWritingSpecificString("Input file not exist\n");
         exit(-1);
     }
     char buffer[SIZE];
     //reading the path content
     ssize_t fBuffer = read(fptr, buffer, SIZE);
     if (fBuffer < 0) {
-        perror("Input file not exist\n");
+        errorWritingSpecificString("Input file not exist\n");
         exit(-1);
     }
     close(fptr);
     fptr = open(output, O_RDONLY);
     if (fptr < 0) {
-        perror("Output file not exist\n");
+        errorWritingSpecificString("Output file not exist\n");
         exit(-1);
     }
     char buffer1[SIZE];
     //reading the path content
     ssize_t fBuffer1 = read(fptr, buffer1, SIZE);
     if (fBuffer < 0) {
-        perror("Output file not exist\n");
+        errorWritingSpecificString("Output file not exist\n");
         exit(-1);
     }
     close(fptr);
@@ -326,7 +335,7 @@ void clearString(char buffer[SIZE]) {
 int checkIfDir(char path[SIZE]) {
     struct stat statBuf;
     if (stat(path, &statBuf) == -1) {
-        perror("Error in: stat");
+        errorWriting("stat");
     }
     return S_ISDIR(statBuf.st_mode);
 }
