@@ -102,14 +102,14 @@ int main(int argc, const char *argv[]) {
                 lenFile = strlen(dit2->d_name);
                 //checks if the file is the c file
                 if (dit2->d_name[lenFile - 1] == 'c') {
-                    countCFiles++;
-                    //The fork got an error
                     int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
                     if (error < 0) {
                         errorWriting("open");
                     }
                     dup2(error, 2);
                     close(error);
+                    countCFiles++;
+                    //The fork got an error
                     if ((childID = fork()) == -1) {
                         errorWriting("fork");
                     }
@@ -180,11 +180,11 @@ int main(int argc, const char *argv[]) {
                             }
                                 //The father
                             else {
+                                if (wait(&statChild) == -1)
+                                    errorWriting("wait");
                                 int boolToAdd = 1;
                                 clearString(resultToAdd);
                                 strcpy(resultToAdd, dit->d_name);
-                                if (wait(&statChild) == -1)
-                                    errorWriting("wait");
                                 int childResult = WEXITSTATUS(statChild);
                                 if (boolToAdd) {
                                     char bufferComp[SIZE];
@@ -233,6 +233,7 @@ void doingExecvp(char *argvs[SIZE]) {
 void errorWriting(char errorToWrite[SIZE]) {
     int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
     char errorString[SIZE];
+    clearString(errorString);
     int errorLength;
     strcpy(errorString, ERROR_MSG);
     strcat(errorString, errorToWrite);
@@ -245,6 +246,7 @@ void errorWriting(char errorToWrite[SIZE]) {
 void errorWritingSpecificString(char errorToWrite[SIZE]) {
     int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
     char errorString[SIZE];
+    clearString(errorString);
     int errorLength;
     strcpy(errorString, errorToWrite);
     errorLength = strlen(errorString);
