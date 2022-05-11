@@ -29,11 +29,13 @@ void createCsvAndError();
 
 void writeToResultCSV(char resultToAdd[SIZE]);
 
-void doingExecvp(char *argvs[SIZE]);
-
 void errorWriting(char errorToWrite[SIZE]);
 
 void errorWritingSpecificString(char errorToWrite[SIZE]);
+
+void errorWritingToError(char errorToWrite[SIZE]);
+
+void doingExecvpOfOtherProgram(char *argvs[SIZE]);
 
 int main(int argc, const char *argv[]) {
     createCsvAndError();
@@ -120,7 +122,7 @@ int main(int argc, const char *argv[]) {
                         strcat(argvChild[3], SLASH);
                         strcat(argvChild[3], dit2->d_name);
 
-                        doingExecvp(argvChild);
+                        doingExecvpOfOtherProgram(argvChild);
 
 
                     }
@@ -162,7 +164,7 @@ int main(int argc, const char *argv[]) {
 
                             char *arg2[SIZE] = {"./b.out"};
 
-                            doingExecvp(arg2);
+                            doingExecvpOfOtherProgram(arg2);
                         }
                             //The father
                         else {
@@ -176,7 +178,7 @@ int main(int argc, const char *argv[]) {
                                 //The child
                             else if (childID == 0) {
                                 char *arg3[SIZE] = {"./comp.out", "out.txt", pathOutput};
-                                doingExecvp(arg3);
+                                doingExecvpOfOtherProgram(arg3);
                             }
                                 //The father
                             else {
@@ -224,13 +226,14 @@ int main(int argc, const char *argv[]) {
     remove("out.txt");
 }
 
-void doingExecvp(char *argvs[SIZE]) {
-    if (execvp(argvs[0], argvs) == -1)
-        errorWriting(argvs[0]);
 
+void doingExecvpOfOtherProgram(char *argvs[SIZE]) {
+    if (execvp(argvs[0], argvs) == -1)
+        errorWritingToError(argvs[0]);
 }
 
-void errorWriting(char errorToWrite[SIZE]) {
+
+void errorWritingToError(char errorToWrite[SIZE]) {
     int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
     char errorString[SIZE];
     clearString(errorString);
@@ -243,15 +246,24 @@ void errorWriting(char errorToWrite[SIZE]) {
     close(error);
 }
 
+void errorWriting(char errorToWrite[SIZE]) {
+    char errorString[SIZE];
+    clearString(errorString);
+    int errorLength;
+    strcpy(errorString, ERROR_MSG);
+    strcat(errorString, errorToWrite);
+    strcat(errorString, ENTER);
+    errorLength = strlen(errorString);
+    write(1, errorString, errorLength);
+}
+
 void errorWritingSpecificString(char errorToWrite[SIZE]) {
-    int error = open("error.txt", O_WRONLY | O_APPEND, 0644);
     char errorString[SIZE];
     clearString(errorString);
     int errorLength;
     strcpy(errorString, errorToWrite);
     errorLength = strlen(errorString);
-    write(error, errorString, errorLength);
-    close(error);
+    write(1, errorString, errorLength);
 }
 
 void writeToResultCSV(char resultToAdd[SIZE]) {
@@ -283,7 +295,7 @@ void createCsvAndError() {
     close(errorFile);
 }
 
-void checkIfPathsAreValid(char dir[150], char input[150], char output[150]) {
+void checkIfPathsAreValid(char dir[SIZE], char input[SIZE], char output[SIZE]) {
     //check if it's a dir path
     if (checkIfDir(dir) == 0) {
         errorWritingSpecificString("Not a valid directory\n");
