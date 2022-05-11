@@ -1,4 +1,4 @@
-//Sagiv Antebi 318159282
+//Sagiv Antebi
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,9 +6,9 @@
 #include <fcntl.h>
 
 
-#define SIZE 150
+#define SIZE 1500
 #define SPACE " "
-#define ENTER "\n"
+#define NEW_LINE "\n"
 #define LOWER_A 97
 #define LOWER_Z 123
 
@@ -21,12 +21,12 @@ void setStringToCompare(char buffer[SIZE]);
 
 void clearString(char buffer[SIZE]);
 
+int allRemainAreSpacesAndNewLine(int buffer, int sptr, char secondPathBuffer[SIZE]);
+
 int main(int argc, const char *argv[]) {
-    int numToReturn = 2;
     char firstPathBuffer[SIZE], secondPathBuffer[SIZE];
     int fBuffer, sBuffer;
     if (argc != 3) {
-        printf("Not enough Arguments\n");
         exit(1);
     }
     if (strcmp(argv[1], argv[2]) == 0) {
@@ -179,16 +179,22 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
-            if (f == fLength && s != sLength) {
-                close(fptr);
-                close(sptr);
-                return 2;
-
-            }
             if (f == fLength && s == sLength) {
                 close(fptr);
+                int boolCheckRemain = allRemainAreSpacesAndNewLine(sBuffer, sptr, secondPathBuffer);
+                if (boolCheckRemain == 1)
+                    return 3;
                 close(sptr);
-                return 3;
+                return 2;
+            }
+            if (f == fLength && s != sLength) {
+                close(fptr);
+                //need to check remain
+                int boolCheckRemain = allRemainAreSpacesAndNewLine(sBuffer, sptr, secondPathBuffer);
+                if (boolCheckRemain == 1)
+                    return 3;
+                close(sptr);
+                return 2;
             }
             if (s == sLength) {
                 //reading the second path content
@@ -222,17 +228,25 @@ int main(int argc, const char *argv[]) {
                 close(sptr);
                 return 2;
             }
-            if (s == sLength && f != fLength) {
-                close(fptr);
+            if (s == sLength && f == fLength) {
                 close(sptr);
+                int boolCheckRemain = allRemainAreSpacesAndNewLine(fBuffer, fptr, firstPathBuffer);
+                if (boolCheckRemain == 1)
+                    return 3;
+                close(fptr);
+                return 2;
+            }
+            if (s == sLength && f != fLength) {
+                close(sptr);
+                //need to check remain
+                int boolCheckRemain = allRemainAreSpacesAndNewLine(fBuffer, fptr, firstPathBuffer);
+                if (boolCheckRemain == 1)
+                    return 3;
+                close(fptr);
                 return 2;
 
             }
-            if (s == sLength && f == fLength) {
-                close(fptr);
-                close(sptr);
-                return 3;
-            }
+
             if (f == fLength) {
                 //reading the second path content
                 clearString(firstPathBuffer);
@@ -249,6 +263,22 @@ int main(int argc, const char *argv[]) {
     close(fptr);
     close(sptr);
     return 3;
+}
+
+int allRemainAreSpacesAndNewLine(int buffer, int sptr, char secondPathBuffer[SIZE]) {
+    while (buffer != 0) {
+        //reading the second path content
+        clearString(secondPathBuffer);
+        buffer = read(sptr, secondPathBuffer, 1);
+        if (buffer < 0) {
+            perror("Error in: read");
+            exit(-1);
+        }
+        if (buffer == 0)
+            return 1;
+        if (strcmp(secondPathBuffer, NEW_LINE) != 0 && strcmp(secondPathBuffer, SPACE) != 0)
+            return 0;
+    }
 }
 
 
@@ -271,10 +301,10 @@ void removeSpacesAndNewLines(char buffer[SIZE]) {
         strcat(newBufferNoSpace, token);
         token = strtok(NULL, SPACE);
     }
-    char *token2 = strtok(newBufferNoSpace, ENTER);
+    char *token2 = strtok(newBufferNoSpace, NEW_LINE);
     while (token2 != NULL) {
         strcat(returnBuffer, token2);
-        token2 = strtok(NULL, ENTER);
+        token2 = strtok(NULL, NEW_LINE);
     }
     strcpy(buffer, returnBuffer);
 }
@@ -290,11 +320,6 @@ void clearString(char buffer[SIZE]) {
     for (h = 0; h < SIZE; ++h) {
         buffer[h] = '\0';
     }
-
-
 }
-
-
-
 
 
