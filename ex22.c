@@ -263,7 +263,7 @@ void errorWritingSpecificString(char errorToWrite[SIZE]) {
     int errorLength;
     strcpy(errorString, errorToWrite);
     errorLength = strlen(errorString);
-    write(1, errorString, errorLength);
+    write(2, errorString, errorLength);
 }
 
 void writeToResultCSV(char resultToAdd[SIZE]) {
