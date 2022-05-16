@@ -254,7 +254,7 @@ void errorWriting(char errorToWrite[SIZE]) {
     strcat(errorString, errorToWrite);
     strcat(errorString, ENTER);
     errorLength = strlen(errorString);
-    write(1, errorString, errorLength);
+    write(2, errorString, errorLength);
 }
 
 void errorWritingSpecificString(char errorToWrite[SIZE]) {
